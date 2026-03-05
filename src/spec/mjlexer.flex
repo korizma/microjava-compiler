@@ -68,9 +68,6 @@ StringChar = [^\r\n\"\\]
 "break" 						{ return new_symbol(sym.BREAK); }
 
 "void" 							{ return new_symbol(sym.VOID); }
-"int" 							{ return new_symbol(sym.INT); }
-"boolean" 						{ return new_symbol(sym.BOOLEAN); }
-"char" 							{ return new_symbol(sym.CHAR); }
 "enum" 							{ return new_symbol(sym.ENUM); }
 
 "+" 							{ return new_symbol(sym.PLUS); }
@@ -114,7 +111,7 @@ StringChar = [^\r\n\"\\]
 <IN_STRING> "\r"				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (nedozvoljen novi red u stringu) u liniji "+(yyline+1)); }
 
 [0-9]+  						{ return new_symbol(sym.NUMBER, new Integer (yytext())); }
-([a-z]|[A-Z])[a-z|A-Z|0-9|_]* 	{ return new_symbol (sym.IDENT, yytext()); }
+([a-z]|[A-Z])[a-zA-Z0-9_]* 	{ return new_symbol (sym.IDENT, yytext()); }
 
 . { System.err.println("\nLeksicka greska ("+yytext()+") u liniji "+(yyline+1) + ", u koloni " + yycolumn + "\n"); }
 

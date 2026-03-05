@@ -9,7 +9,18 @@ public class LexerTest
 {
 	public static void main(String[] args) throws Exception
 	{
-		File sourceFile = new File("test/program.mj");
+		if (args.length < 1) {
+			System.err.println("Not enough arguments supplied! Usage: LexerTest <source-file>");
+			return;
+		}
+
+		File sourceFile = new File(args[0]);
+		if (!sourceFile.exists() || !sourceFile.isFile()) {
+			System.err.println("Source file [" + sourceFile.getAbsolutePath() + "] not found!");
+			return;
+		}
+
+		System.out.println("Lexing source file: " + sourceFile.getAbsolutePath());
 		try (BufferedReader br = new BufferedReader(new FileReader(sourceFile))) {
 			Yylex lexer = new Yylex(br);
 			while (true) {
