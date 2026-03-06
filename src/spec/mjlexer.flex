@@ -16,7 +16,7 @@ import java_cup.runtime.Symbol;
 		return new Symbol(type, yyline+1, yycolumn, value);
 	}
 
-	private StringBuilder stringLiteral = new StringBuilder();
+	String charMaker;
 
 %}
 
@@ -25,13 +25,15 @@ import java_cup.runtime.Symbol;
 %column
 
 %xstate COMMENT
-%xstate IN_STRING
+%xstate IN_CHAR_EMPTY
+%xstate IN_CHAR_FULL
+%xstate IN_CHAR_FAIL
 
 %eofval{
 	return new_symbol(sym.EOF);
 %eofval}
 
-StringChar = [^\r\n\"\\]
+specChar = "\\" ("n" | "t" | "\\" | "'")
 
 %%
 
@@ -53,6 +55,9 @@ StringChar = [^\r\n\"\\]
 
 "const" 						{ return new_symbol(sym.CONST); }
 "static" 						{ return new_symbol(sym.STATIC); }
+
+"true" 						{ return new_symbol(sym.TRUE); }
+"false" 						{ return new_symbol(sym.FALSE); }
 
 "abstract" 						{ return new_symbol(sym.ABST); }
 "class" 						{ return new_symbol(sym.CLASS); }
@@ -85,7 +90,6 @@ StringChar = [^\r\n\"\\]
 ":" 							{ return new_symbol(sym.COLON); }
 "," 							{ return new_symbol(sym.COMMA); }
 "." 							{ return new_symbol(sym.DOT); }
-"'" 							{ return new_symbol(sym.SQUOT); }
 "<"								{ return new_symbol(sym.LSTHAN); }
 ">"								{ return new_symbol(sym.GRTHAN); }
 
@@ -102,16 +106,20 @@ StringChar = [^\r\n\"\\]
 <COMMENT> "\n" 					{ yybegin(YYINITIAL); }
 <COMMENT> "\r" 					{ yybegin(YYINITIAL); }
 
-<YYINITIAL> \"					{ stringLiteral.setLength(0); yybegin(IN_STRING); }
-<IN_STRING> {StringChar}+		{ stringLiteral.append(yytext()); }
-<IN_STRING> \\\"				{ stringLiteral.append('\"'); }
-<IN_STRING> \"					{ yybegin(YYINITIAL); return new_symbol(sym.STRING, stringLiteral.toString()); }
-<IN_STRING> "\r\n"				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (nedozvoljen novi red u stringu) u liniji "+(yyline+1)); }
-<IN_STRING> "\n"				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (nedozvoljen novi red u stringu) u liniji "+(yyline+1)); }
-<IN_STRING> "\r"				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (nedozvoljen novi red u stringu) u liniji "+(yyline+1)); }
+<YYINITIAL> '					{ yybegin(IN_CHAR_EMPTY); }
+
+
+<IN_CHAR_EMPTY> {specChar}		{ charMaker = yytext(); yybegin(IN_CHAR_FULL); }	
+<IN_CHAR_EMPTY> '				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (nedozvoljeno je '') u liniji "+(yyline+1)); }
+<IN_CHAR_EMPTY> .				{ charMaker = yytext(); yybegin(IN_CHAR_FULL); }
+
+<IN_CHAR_FULL> '				{ yybegin(YYINITIAL); return new_symbol(sym.CHAR, charMaker); }
+<IN_CHAR_FULL> .				{ yybegin(IN_CHAR_FAIL); }
+<IN_CHAR_FAIL> '				{ yybegin(YYINITIAL); System.err.println("Leksicka greska (previse karaktera u '') u liniji "+(yyline+1));}
+<IN_CHAR_FAIL> .				{ yybegin(IN_CHAR_FAIL); }
 
 [0-9]+  						{ return new_symbol(sym.NUMBER, new Integer (yytext())); }
-([a-z]|[A-Z])[a-zA-Z0-9_]* 	{ return new_symbol (sym.IDENT, yytext()); }
+([a-z]|[A-Z])[a-zA-Z0-9_]* 		{ return new_symbol (sym.IDENT, yytext()); }
 
 . { System.err.println("\nLeksicka greska ("+yytext()+") u liniji "+(yyline+1) + ", u koloni " + yycolumn + "\n"); }
 

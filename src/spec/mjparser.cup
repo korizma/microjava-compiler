@@ -3,9 +3,26 @@ package rs.ac.bg.etf.pp1;
 import java_cup.runtime.*;
 
 parser code {:
-	
-	
-    
+	private String symbolInfo(Symbol s) {
+		if (s == null) return "token=null";
+		return "tokenId=" + s.sym + ", value=" + s.value + ", line=" + s.left + ", column=" + s.right;
+	}
+
+	public void report_error(String message, Object info) {
+		if (info instanceof Symbol) {
+			System.err.println("Parse error: " + message + " [" + symbolInfo((Symbol) info) + "]");
+		} else {
+			System.err.println("Parse error: " + message + " [info=" + info + "]");
+		}
+	}
+
+	public void syntax_error(Symbol cur_token) {
+		report_error("syntax error", cur_token);
+	}
+
+	public void unrecovered_syntax_error(Symbol cur_token) throws Exception {
+		report_fatal_error("unrecoverable syntax error", cur_token);
+	}
 :}
 
 scan with {:
@@ -18,30 +35,63 @@ scan with {:
 
 terminal PROG, PRINT, ORD, CHR, LEN, RETURN, LENGTH;
 terminal CONST, STATIC;
+terminal TRUE, FALSE;
 terminal ABST, CLASS, EXTEND, THIS, NEW;
 terminal IF, ELSE, SWITCH, FOR, CONT, BREAK;
 terminal VOID, ENUM;
 terminal PLUS, MINUS, EQUAL, MUL, DIV, AND, OR, NOT, MOD;
-terminal QUEST, SEMI, COLON, COMMA, DOT, SQUOT, LSTHAN, GRTHAN;
+terminal QUEST, SEMI, COLON, COMMA, DOT, LSTHAN, GRTHAN;
 terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACK, RBRACK;
-terminal String STRING;
+terminal String CHAR;
 terminal Integer NUMBER;
 terminal String IDENT;
 
 nonterminal Program;
-nonterminal VarDecl, VarDeclVars, VarDeclVar;
+nonterminal VarDecl, VarDeclMult, VarDeclSingle;
+nonterminal ConstDecl, ConstDeclMult, ConstDeclSingle;
 nonterminal Type;
+nonterminal AllTypesConst, NumConst, CharConst, BoolConst;
 
 /*
 Program ::= PROG IDENT (ConsDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl) LBRACE {MethodDecl} RBRACE ; 
 */
 
-Program ::= VarDecl;
+Program ::= VarDecl | ConstDecl; 
 
-VarDecl ::= Type VarDeclVars SEMI;
+ConstDecl ::= CONST Type ConstDeclMult SEMI
+            | CONST Type error SEMI
+            {: parser.report_error("Invalid const declaration", null); :}
+            ;
 
-VarDeclVars ::= VarDeclVar | VarDeclVars COMMA VarDeclVar;
+ConstDeclMult ::= ConstDeclSingle 
+                | ConstDeclMult COMMA ConstDeclSingle
+                | ConstDeclMult COMMA error
+                {: parser.report_error("Invalid const list item after comma", null); :}
+                ;
 
-VarDeclVar ::= IDENT | IDENT LBRACK RBRACK;
+ConstDeclSingle ::= IDENT EQUAL AllTypesConst
+                  | IDENT EQUAL error
+                  {: parser.report_error("Invalid constant value", null); :}
+                  ;
+
+VarDecl ::= Type VarDeclMult SEMI
+          | Type error SEMI
+          {: parser.report_error("Invalid variable declaration", null); :}
+          ;
+
+VarDeclMult ::= VarDeclSingle | 
+                VarDeclMult COMMA VarDeclSingle
+              | VarDeclMult COMMA error
+              {: parser.report_error("Invalid variable list item after comma", null); :}
+              ;
+
+VarDeclSingle ::= IDENT | 
+                  IDENT LBRACK RBRACK;
 
 Type ::= IDENT;
+
+AllTypesConst ::= NumConst | CharConst | BoolConst;
+
+NumConst ::= NUMBER;
+CharConst ::= CHAR;
+BoolConst ::= TRUE | FALSE;
