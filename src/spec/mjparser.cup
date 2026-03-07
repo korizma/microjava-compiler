@@ -3,26 +3,6 @@ package rs.ac.bg.etf.pp1;
 import java_cup.runtime.*;
 
 parser code {:
-	private String symbolInfo(Symbol s) {
-		if (s == null) return "token=null";
-		return "tokenId=" + s.sym + ", value=" + s.value + ", line=" + s.left + ", column=" + s.right;
-	}
-
-	public void report_error(String message, Object info) {
-		if (info instanceof Symbol) {
-			System.err.println("Parse error: " + message + " [" + symbolInfo((Symbol) info) + "]");
-		} else {
-			System.err.println("Parse error: " + message + " [info=" + info + "]");
-		}
-	}
-
-	public void syntax_error(Symbol cur_token) {
-		report_error("syntax error", cur_token);
-	}
-
-	public void unrecovered_syntax_error(Symbol cur_token) throws Exception {
-		report_fatal_error("unrecoverable syntax error", cur_token);
-	}
 :}
 
 scan with {:
@@ -39,7 +19,7 @@ terminal TRUE, FALSE;
 terminal ABST, CLASS, EXTEND, THIS, NEW;
 terminal IF, ELSE, SWITCH, FOR, CONT, BREAK;
 terminal VOID, ENUM;
-terminal PLUS, MINUS, EQUAL, MUL, DIV, AND, OR, NOT, MOD;
+terminal DECREMENT, INCREMENT, PLUS, MINUS, EQUAL, MUL, DIV, AND, OR, NOT, MOD;
 terminal QUEST, SEMI, COLON, COMMA, DOT, LSTHAN, GRTHAN;
 terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACK, RBRACK;
 terminal String CHAR;
@@ -47,46 +27,106 @@ terminal Integer NUMBER;
 terminal String IDENT;
 
 nonterminal Program;
-nonterminal VarDecl, VarDeclMult, VarDeclSingle;
+nonterminal VarDecl, VarDeclMult, VarDeclSingle, VarDeclRepeated;
 nonterminal ConstDecl, ConstDeclMult, ConstDeclSingle;
+nonterminal ClassDecl, ClassDeclBody;
+nonterminal MethodDecl, MethodDeclRepeated, MethodDeclClassBody;
 nonterminal Type;
 nonterminal AllTypesConst, NumConst, CharConst, BoolConst;
 
-/*
-Program ::= PROG IDENT (ConsDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl) LBRACE {MethodDecl} RBRACE ; 
-*/
+/* ostalo mi abstract */
 
-Program ::= VarDecl | ConstDecl; 
+Program ::= PROG IDENT ProgramParts LBRACE MethodDeclMultiple RBRACE;
 
-ConstDecl ::= CONST Type ConstDeclMult SEMI
-            | CONST Type error SEMI
-            {: parser.report_error("Invalid const declaration", null); :}
-            ;
+ProgramParts ::= ProgramParts AnyDecl | /* epsilon */;
 
-ConstDeclMult ::= ConstDeclSingle 
-                | ConstDeclMult COMMA ConstDeclSingle
-                | ConstDeclMult COMMA error
-                {: parser.report_error("Invalid const list item after comma", null); :}
-                ;
+AnyDecl ::= ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
 
-ConstDeclSingle ::= IDENT EQUAL AllTypesConst
-                  | IDENT EQUAL error
-                  {: parser.report_error("Invalid constant value", null); :}
-                  ;
+MethodDeclMultiple ::= MethodDeclMultiple MethodDecl | /* epsilon */;
 
-VarDecl ::= Type VarDeclMult SEMI
-          | Type error SEMI
-          {: parser.report_error("Invalid variable declaration", null); :}
-          ;
+EnumDecl ::= ENUM IDENT LBRACE EnumDeclItems RBRACE;
 
-VarDeclMult ::= VarDeclSingle | 
-                VarDeclMult COMMA VarDeclSingle
-              | VarDeclMult COMMA error
-              {: parser.report_error("Invalid variable list item after comma", null); :}
-              ;
+EnumDeclItems ::= EnumDeclItem | EnumDeclItems COMMA EnumDeclItem;
 
-VarDeclSingle ::= IDENT | 
-                  IDENT LBRACK RBRACK;
+EnumDeclItem ::= IDENT | IDENT EQUAL NumConst;
+
+ClassDecl ::= CLASS IDENT LBRACE ClassDeclBody RBRACE | CLASS IDENT EXTEND Type LBRACE ClassDeclBody RBRACE; 
+
+ClassDeclBody ::= VarDeclRepeated MethodDeclClassBody;
+
+VarDeclRepeated ::= VarDeclRepeated VarDecl | /* epsilon */;
+
+MethodDeclClassBody ::= LBRACE MethodDeclRepeated RBRACE | /* epsilon */;
+
+MethodDeclRepeated ::= MethodDeclRepeated MethodDecl | /* epsilon */;
+
+MethodDecl ::= Type IDENT LPAREN FormPars RPAREN VarDeclRepeated LBRACE Statements RBRACE
+			|  VOID IDENT LPAREN FormPars RPAREN VarDeclRepeated LBRACE Statements RBRACE;
+
+FormPars ::= Type VarDeclSingle | FormPars COMMA Type VarDeclSingle; 
+
+Statements ::= Statements Statement | /* epsilon */ ;
+
+Statement ::= DesignatorStatement SEMI
+			| IF LPAREN Condition RPAREN Statement | IF LPAREN Condition RPAREN Statement ELSE STATEMENT
+			| BREAK SEMI
+			| CONT SEMI
+			| RETURN SEMI | RETURN Expr SEMI
+			| READ LPAREN Designator RPAREN SEMI
+			| SWITCH LPAREN Expr RPAREN SEMI | SWITCH LPAREN Expr COMMA NumConst RPAREN SEMI
+			| FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
+			| LBRACE Statements RBRACE; 
+
+DesignatorStatement ::= Designator Assignop Expr
+					|   Designator LPAREN ActPars01 RPAREN 
+					|   Designator INCREMENT
+					| 	Designator DECREMENT;
+
+DesignatorStatement01 ::= DesignatorStatement | /* epsilon */;
+
+ActPars01 ::= ActPars | /* epsilon */;
+
+ActPars ::= Expr | ActPars COMMA Expr;
+
+Condition ::= CondTerm | Condition OR CondTerm;
+
+CondTerm ::= CondFact | CondTerm AND CondFact;
+
+CondFact ::= Expr | Expr Relop Expr;
+
+Expr ::= ExprAddition
+	   | Condition QUEST Expr COLON Expr;
+
+ExprAddition ::= MINUS Term | ExprAddition Addop Term;
+
+Term ::= Factor | Term Mulop Factor;
+
+Factor ::= Designator | Designator LPAREN ActPars01 RPAREN
+		|  NumConst | CharConst | BoolConst 
+		|  NEW Type | NEW Type LBRACK Expr RBRACK
+		|  LPAREN Expr RPAREN;
+
+Designator ::= IDENT | Designator DOT IDENT | Designator DOT LENGTH | Designator LBRACK Expr RBRACK;
+
+Assignop ::= EQUAL;
+
+Relop ::= DEQUAL | NEQUAL | GRTHAN | GREQTHAN | LSTHAN | LSEQTHAN;
+
+Addop ::= PLUS | MINUS;
+
+Mulop ::= MUL | DIV | MOD;
+
+ConstDecl ::= CONST Type ConstDeclMult SEMI;
+
+ConstDeclMult ::= ConstDeclSingle | ConstDeclMult COMMA ConstDeclSingle;
+
+ConstDeclSingle ::= IDENT EQUAL AllTypesConst;
+
+VarDecl ::= Type VarDeclMult SEMI;
+
+VarDeclMult ::= VarDeclSingle | VarDeclMult COMMA VarDeclSingle;
+
+VarDeclSingle ::= IDENT | IDENT LBRACK RBRACK;
 
 Type ::= IDENT;
 

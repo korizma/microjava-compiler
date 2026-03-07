@@ -75,14 +75,21 @@ specChar = "\\" ("n" | "t" | "\\" | "'")
 "void" 							{ return new_symbol(sym.VOID); }
 "enum" 							{ return new_symbol(sym.ENUM); }
 
+"++" 							{ return new_symbol(sym.INCREMENT); }
+"--" 							{ return new_symbol(sym.DECREMENT); }
+"==" 							{ return new_symbol(sym.DEQUAL); }
+"!=" 							{ return new_symbol(sym.NEQUAL); }
+"<=" 							{ return new_symbol(sym.LSEQTHAN); }
+">=" 							{ return new_symbol(sym.GREQTHAN); }
+
+
 "+" 							{ return new_symbol(sym.PLUS); }
 "-" 							{ return new_symbol(sym.MINUS); }
 "=" 							{ return new_symbol(sym.EQUAL); }
 "*" 							{ return new_symbol(sym.MUL); }
 "/" 							{ return new_symbol(sym.DIV); }
-"&" 							{ return new_symbol(sym.AND); }
-"|" 							{ return new_symbol(sym.OR); }
-"!" 							{ return new_symbol(sym.NOT); }
+"&&" 							{ return new_symbol(sym.AND); }
+"||" 							{ return new_symbol(sym.OR); }
 "%" 							{ return new_symbol(sym.MOD); }
 
 "?" 							{ return new_symbol(sym.QUEST); }
