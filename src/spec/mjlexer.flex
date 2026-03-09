@@ -47,22 +47,18 @@ specChar = "\\" ("n" | "t" | "\\" | "'")
 
 "program"   					{ return new_symbol(sym.PROG); }
 "print" 						{ return new_symbol(sym.PRINT); }
-"ord" 							{ return new_symbol(sym.ORD); }
-"chr" 							{ return new_symbol(sym.CHR); }
-"len" 							{ return new_symbol(sym.LEN); }
+"read" 							{ return new_symbol(sym.READ); }
 "return" 						{ return new_symbol(sym.RETURN); }
 "length" 						{ return new_symbol(sym.LENGTH); }
 
 "const" 						{ return new_symbol(sym.CONST); }
-"static" 						{ return new_symbol(sym.STATIC); }
 
-"true" 						{ return new_symbol(sym.TRUE); }
+"true" 							{ return new_symbol(sym.TRUE); }
 "false" 						{ return new_symbol(sym.FALSE); }
 
 "abstract" 						{ return new_symbol(sym.ABST); }
 "class" 						{ return new_symbol(sym.CLASS); }
 "extends" 						{ return new_symbol(sym.EXTEND); }
-"this" 							{ return new_symbol(sym.THIS); }
 "new" 							{ return new_symbol(sym.NEW); }
 
 "if" 							{ return new_symbol(sym.IF); }
@@ -71,6 +67,7 @@ specChar = "\\" ("n" | "t" | "\\" | "'")
 "for" 							{ return new_symbol(sym.FOR); }
 "continue" 						{ return new_symbol(sym.CONT); }
 "break" 						{ return new_symbol(sym.BREAK); }
+"case" 							{ return new_symbol(sym.CASE); }
 
 "void" 							{ return new_symbol(sym.VOID); }
 "enum" 							{ return new_symbol(sym.ENUM); }

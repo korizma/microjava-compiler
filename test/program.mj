@@ -1,1 +1,24 @@
-const int a = 1234, nesto = true, becd = 'a';
+// Test301
+
+program test301
+
+enum Broj { NULA, JEDAN, PET=5, DESET=10}
+
+const int nula = 0;
+const int jedan = 1;
+const int pet = 5;
+
+int niz[];
+char nizch[];
+
+int a;
+	
+{
+	void main()	
+		int bodovi;
+	{
+		
+		
+	}
+}
+

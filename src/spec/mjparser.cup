@@ -13,69 +13,98 @@ scan with {:
 :}
 
 
-terminal PROG, PRINT, ORD, CHR, LEN, RETURN, LENGTH;
-terminal CONST, STATIC;
+terminal PROG, PRINT, RETURN, LENGTH, READ, CASE;
+terminal CONST;
 terminal TRUE, FALSE;
-terminal ABST, CLASS, EXTEND, THIS, NEW;
+terminal ABST, CLASS, EXTEND, NEW;
 terminal IF, ELSE, SWITCH, FOR, CONT, BREAK;
 terminal VOID, ENUM;
-terminal DECREMENT, INCREMENT, PLUS, MINUS, EQUAL, MUL, DIV, AND, OR, NOT, MOD;
+terminal DECREMENT, INCREMENT, PLUS, MINUS, EQUAL, MUL, DIV, AND, OR, MOD;
+terminal DEQUAL, NEQUAL, GREQTHAN, LSEQTHAN;
 terminal QUEST, SEMI, COLON, COMMA, DOT, LSTHAN, GRTHAN;
 terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACK, RBRACK;
 terminal String CHAR;
 terminal Integer NUMBER;
 terminal String IDENT;
 
-nonterminal Program;
-nonterminal VarDecl, VarDeclMult, VarDeclSingle, VarDeclRepeated;
-nonterminal ConstDecl, ConstDeclMult, ConstDeclSingle;
+nonterminal Program, AnyDecl01, AnyDecl;
+nonterminal VarDecl, VarDeclMult0N, VarDeclSingle, VarDecl01;
+nonterminal ConstDecl, ConstDeclMult0N, ConstDeclSingle;
 nonterminal ClassDecl, ClassDeclBody;
-nonterminal MethodDecl, MethodDeclRepeated, MethodDeclClassBody;
+nonterminal MethodDecl, MethodDeclClassBody, MethodDecl01;
+nonterminal EnumDecl, EnumDeclItem0N, EnumDeclItem;
+nonterminal AbstractClassDecl, AbstractClassDeclBody, AbstractClassDeclBodyDecl, AbstractMethodDecl;
 nonterminal Type;
+nonterminal FormPars, FormPars01;
+nonterminal Statement01, Statement;
+nonterminal SwitchStatement, SwitchCaseStatement01, SwitchCaseStatement;
+nonterminal DesignatorStatement, DesignatorStatement01;
+nonterminal ActPars01, ActPars;
+nonterminal Condition, Condition01, CondTerm, CondFact;
+nonterminal Expr, ExprAddition, Term, Factor, Designator;
+nonterminal TernaryExpr, OrExpr, AndExpr, RelExpr, AddExpr;
+nonterminal Assignop, Relop, Addop, Mulop;
 nonterminal AllTypesConst, NumConst, CharConst, BoolConst;
+
+precedence left ELSE;
 
 /* ostalo mi abstract */
 
-Program ::= PROG IDENT ProgramParts LBRACE MethodDeclMultiple RBRACE;
+Program ::= PROG IDENT AnyDecl01 LBRACE MethodDecl01 RBRACE;
 
-ProgramParts ::= ProgramParts AnyDecl | /* epsilon */;
+AnyDecl01 ::= AnyDecl01 AnyDecl | /* epsilon */;
 
 AnyDecl ::= ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
 
-MethodDeclMultiple ::= MethodDeclMultiple MethodDecl | /* epsilon */;
+AbstractClassDecl ::= ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE | ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
 
-EnumDecl ::= ENUM IDENT LBRACE EnumDeclItems RBRACE;
+AbstractClassDeclBody ::= VarDecl01 | VarDecl01 LBRACE AbstractClassDeclBodyDecl RBRACE;
 
-EnumDeclItems ::= EnumDeclItem | EnumDeclItems COMMA EnumDeclItem;
+AbstractClassDeclBodyDecl ::= AbstractClassDeclBodyDecl AbstractMethodDecl SEMI | AbstractClassDeclBodyDecl MethodDecl | /* epsilon */;
+
+AbstractMethodDecl ::= ABST Type IDENT LPAREN FormPars01 RPAREN | ABST VOID IDENT LPAREN FormPars01 RPAREN ;
+
+MethodDecl01 ::= MethodDecl01 MethodDecl | /* epsilon */;
+
+EnumDecl ::= ENUM IDENT LBRACE EnumDeclItem0N RBRACE;
+
+EnumDeclItem0N ::= EnumDeclItem | EnumDeclItem0N COMMA EnumDeclItem;
 
 EnumDeclItem ::= IDENT | IDENT EQUAL NumConst;
 
 ClassDecl ::= CLASS IDENT LBRACE ClassDeclBody RBRACE | CLASS IDENT EXTEND Type LBRACE ClassDeclBody RBRACE; 
 
-ClassDeclBody ::= VarDeclRepeated MethodDeclClassBody;
+ClassDeclBody ::= VarDecl01 MethodDeclClassBody;
 
-VarDeclRepeated ::= VarDeclRepeated VarDecl | /* epsilon */;
+VarDecl01 ::= VarDecl01 VarDecl | /* epsilon */;
 
-MethodDeclClassBody ::= LBRACE MethodDeclRepeated RBRACE | /* epsilon */;
+MethodDeclClassBody ::= LBRACE MethodDecl01 RBRACE | /* epsilon */;
 
-MethodDeclRepeated ::= MethodDeclRepeated MethodDecl | /* epsilon */;
-
-MethodDecl ::= Type IDENT LPAREN FormPars RPAREN VarDeclRepeated LBRACE Statements RBRACE
-			|  VOID IDENT LPAREN FormPars RPAREN VarDeclRepeated LBRACE Statements RBRACE;
+MethodDecl ::= Type IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE
+			|  VOID IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE;
 
 FormPars ::= Type VarDeclSingle | FormPars COMMA Type VarDeclSingle; 
 
-Statements ::= Statements Statement | /* epsilon */ ;
+FormPars01 ::= FormPars | /* epsilon */ ;
+
+Statement01 ::= Statement01 Statement | /* epsilon */ ;
 
 Statement ::= DesignatorStatement SEMI
-			| IF LPAREN Condition RPAREN Statement | IF LPAREN Condition RPAREN Statement ELSE STATEMENT
+			| IF LPAREN Condition RPAREN Statement | IF LPAREN Condition RPAREN Statement ELSE Statement
 			| BREAK SEMI
 			| CONT SEMI
 			| RETURN SEMI | RETURN Expr SEMI
 			| READ LPAREN Designator RPAREN SEMI
-			| SWITCH LPAREN Expr RPAREN SEMI | SWITCH LPAREN Expr COMMA NumConst RPAREN SEMI
+			| PRINT LPAREN Expr RPAREN SEMI | PRINT LPAREN Expr COMMA NumConst RPAREN SEMI 
+			| SwitchStatement
 			| FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
-			| LBRACE Statements RBRACE; 
+			| LBRACE Statement01 RBRACE; 
+
+SwitchStatement ::= SWITCH LPAREN Expr RPAREN LBRACE SwitchCaseStatement01 RBRACE;
+
+SwitchCaseStatement01 ::= SwitchCaseStatement01 SwitchCaseStatement | /* epsilon */ ;
+
+SwitchCaseStatement ::= CASE NumConst COLON Statement01;
 
 DesignatorStatement ::= Designator Assignop Expr
 					|   Designator LPAREN ActPars01 RPAREN 
@@ -88,18 +117,21 @@ ActPars01 ::= ActPars | /* epsilon */;
 
 ActPars ::= Expr | ActPars COMMA Expr;
 
+Condition01 ::= Condition | /* epsilon */ ;
+
+Expr ::= TernaryExpr;
+
+TernaryExpr ::= Condition | Condition QUEST Expr COLON TernaryExpr;
+
 Condition ::= CondTerm | Condition OR CondTerm;
 
 CondTerm ::= CondFact | CondTerm AND CondFact;
 
-CondFact ::= Expr | Expr Relop Expr;
+CondFact ::= AddExpr | AddExpr Relop AddExpr;
 
-Expr ::= ExprAddition
-	   | Condition QUEST Expr COLON Expr;
+AddExpr ::= Term | AddExpr Addop Term;
 
-ExprAddition ::= MINUS Term | ExprAddition Addop Term;
-
-Term ::= Factor | Term Mulop Factor;
+Term ::= Term Mulop Factor | Factor;
 
 Factor ::= Designator | Designator LPAREN ActPars01 RPAREN
 		|  NumConst | CharConst | BoolConst 
@@ -116,15 +148,18 @@ Addop ::= PLUS | MINUS;
 
 Mulop ::= MUL | DIV | MOD;
 
-ConstDecl ::= CONST Type ConstDeclMult SEMI;
+ConstDecl ::= CONST Type ConstDeclMult0N SEMI
+			| CONST Type error SEMI {: System.err.println("Error while parsing ConstDecl, stopped at the semi colon"); :};
 
-ConstDeclMult ::= ConstDeclSingle | ConstDeclMult COMMA ConstDeclSingle;
+ConstDeclMult0N ::= ConstDeclSingle | ConstDeclMult0N COMMA ConstDeclSingle
+					| error COMMA ConstDeclSingle {: System.err.println("Error while parsing ConstDecl, stopped at the comma"); :};
 
 ConstDeclSingle ::= IDENT EQUAL AllTypesConst;
 
-VarDecl ::= Type VarDeclMult SEMI;
+VarDecl ::= Type VarDeclMult0N SEMI
+		| Type error SEMI {: System.err.println("Error while parsing VarDecl"); :};
 
-VarDeclMult ::= VarDeclSingle | VarDeclMult COMMA VarDeclSingle;
+VarDeclMult0N ::= VarDeclSingle | VarDeclMult0N COMMA VarDeclSingle;
 
 VarDeclSingle ::= IDENT | IDENT LBRACK RBRACK;
 
