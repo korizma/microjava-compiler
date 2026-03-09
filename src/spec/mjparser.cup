@@ -87,7 +87,11 @@ Program ::= (Program) PROG IDENT AnyDecl0N LBRACE MethodDecl0N RBRACE;
 
 AnyDecl0N ::= (AnyDeclList) AnyDecl0N AnyDecl | (AnyDeclEmpty) /* epsilon */;
 
-AnyDecl ::= (AnyDecl) ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
+AnyDecl ::= (AnyDeclConst) ConstDecl 
+		| (AnyDeclVar) VarDecl 
+		| (AnyDeclClass) ClassDecl 
+		| (AnyDeclEnum) EnumDecl 
+		| (AnyDeclAbstractClass) AbstractClassDecl;
 
 MethodDecl0N ::= (MethodDeclList) MethodDecl0N MethodDecl | (MethodDeclEmpty) /* epsilon */;
 
@@ -97,111 +101,132 @@ ConstDeclMult1N ::= (ConstDeclMultSingle) ConstDeclSingle | (ConstDeclMultList) 
 
 ConstDeclSingle ::= (ConstDeclSingle) IDENT EQUAL AllTypesConst;
 
-AllTypesConst ::= (AllTypesConst) NumConst | CharConst | BoolConst;
+AllTypesConst ::= (AllTypesConstNum) NumConst | (AllTypesConstChar) CharConst | (AllTypesConstBool) BoolConst;
 
 NumConst ::= (NumConst) NUMBER;
-CharConst ::= (CharConst) CHAR;
+CharConst ::= (CharConst) CHAR:charValue;
 BoolConst ::= (BoolConstTrue) TRUE | (BoolConstFalse) FALSE;
 
 VarDecl ::= (VarDecl) Type VarDeclMult1N SEMI;
 
 VarDeclMult1N ::= (VarDeclMultSingle) VarDeclSingle | (VarDeclMultList) VarDeclMult1N COMMA VarDeclSingle;
 
-VarDeclSingle ::= (VarDeclSingle) IDENT | (VarDeclSingleArray) IDENT LBRACK RBRACK;
+VarDeclSingle ::= (VarDeclSingleScalar) IDENT | (VarDeclSingleArray) IDENT LBRACK RBRACK;
 
 EnumDecl ::= (EnumDecl) ENUM IDENT LBRACE EnumDeclItem1N RBRACE;
 
 EnumDeclItem1N ::= (EnumDeclItemSingle) EnumDeclItem | (EnumDeclItemList) EnumDeclItem1N COMMA EnumDeclItem;
 
-EnumDeclItem ::= (EnumDeclItem) IDENT | (EnumDeclItemValue) IDENT EQUAL NumConst;
+EnumDeclItem ::= (EnumDeclItemName) IDENT | (EnumDeclItemValue) IDENT EQUAL NumConst;
 
-ClassDecl ::= (ClassDecl) CLASS IDENT LBRACE ClassDeclBody RBRACE 
+ClassDecl ::= (ClassDeclNoExtend) CLASS IDENT LBRACE ClassDeclBody RBRACE 
 			| (ClassDeclExtend) CLASS IDENT EXTEND Type LBRACE ClassDeclBody RBRACE; 
 
 ClassDeclBody ::= (ClassDeclBody) VarDecl0N MethodDeclClassBody;
 
 VarDecl0N ::= (VarDeclList) VarDecl0N VarDecl | (VarDeclNone) /* epsilon */;
 
-MethodDeclClassBody ::= LBRACE MethodDecl0N RBRACE | /* epsilon */;
+MethodDeclClassBody ::= (MethodDeclClassBodyExist) LBRACE MethodDecl0N RBRACE | (MethodDeclClassBodyEmpty) /* epsilon */;
 
-AbstractClassDecl ::= ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE | ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
+AbstractClassDecl ::= (AbstractClassDeclRegular) ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE 
+				    | (AbstractClassDeclExtend) ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
 
-AbstractClassDeclBody ::= VarDecl0N | VarDecl0N LBRACE AbstractClassDeclBodyDecl RBRACE;
+AbstractClassDeclBody ::= (AbstractClassDeclBodyVarDecl) VarDecl0N 
+						| (AbstractClassDeclBodyVarDeclBodyDecl) VarDecl0N LBRACE AbstractClassDeclBodyDecl RBRACE;
 
-AbstractClassDeclBodyDecl ::= AbstractClassDeclBodyDecl AbstractMethodDecl SEMI | AbstractClassDeclBodyDecl MethodDecl | /* epsilon */;
+AbstractClassDeclBodyDecl ::= (AbstractClassDeclBodyDeclAbsAdded) AbstractClassDeclBodyDecl AbstractMethodDecl SEMI 
+							| (AbstractClassDeclBodyDeclMethodAdded) AbstractClassDeclBodyDecl MethodDecl | (AbstractClassDeclBodyDeclEmpty)/* epsilon */;
 
-AbstractMethodDecl ::= ABST Type IDENT LPAREN FormPars01 RPAREN | ABST VOID IDENT LPAREN FormPars01 RPAREN ;
+AbstractMethodDecl ::= (AbstractMethodDeclTyped) ABST Type IDENT LPAREN FormPars01 RPAREN 
+					 | (AbstractMethodDeclVoid) ABST VOID IDENT LPAREN FormPars01 RPAREN ;
 
-MethodDecl ::= Type IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE
-			|  VOID IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE;
+MethodDecl ::= (MethodDeclTyped) Type IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE
+			|  (MethodDeclVoid) VOID IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE;
 
-FormPars ::= Type VarDeclSingle | FormPars COMMA Type VarDeclSingle; 
+FormPars ::= (FormParsSingle) Type VarDeclSingle | (FormParsMultiple) FormPars COMMA Type VarDeclSingle; 
 
-FormPars01 ::= FormPars | /* epsilon */ ;
+FormPars01 ::= (FormParsExist) FormPars | (FormParsEmpty) /* epsilon */ ;
 
 Type ::= IDENT;
 
-Statement ::= DesignatorStatement SEMI
-			| IF LPAREN Condition RPAREN Statement | IF LPAREN Condition RPAREN Statement ELSE Statement
-			| BREAK SEMI
-			| CONT SEMI
-			| RETURN SEMI | RETURN Expr SEMI
-			| READ LPAREN Designator RPAREN SEMI
-			| PRINT LPAREN Expr RPAREN SEMI | PRINT LPAREN Expr COMMA NumConst RPAREN SEMI 
-			| SwitchStatement
-			| FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
-			| LBRACE Statement0N RBRACE; 
+Statement ::= (StatementDesignatorStatement) DesignatorStatement SEMI
+			| (StatementIf) IF LPAREN Condition RPAREN Statement 
+			| (StatementIfElse) IF LPAREN Condition RPAREN Statement ELSE Statement
+			| (StatementBreak) BREAK SEMI
+			| (StatementContinue) CONT SEMI
+			| (StatementReturnNone) RETURN SEMI 
+			| (StatementReturnValue) RETURN Expr SEMI
+			| (StatementRead) READ LPAREN Designator RPAREN SEMI
+			| (StatementPrint1Arg) PRINT LPAREN Expr RPAREN SEMI 
+			| (StatementPrint2Arg) PRINT LPAREN Expr COMMA NumConst RPAREN SEMI 
+			| (StatementSwitch) SwitchStatement
+			| (StatementFor) FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
+			| (StatementStatementBlock) LBRACE Statement0N RBRACE; 
 
-Statement0N ::= Statement0N Statement | /* epsilon */ ;
+Statement0N ::= (StatementList) Statement0N Statement | (StatementEmpty) /* epsilon */ ;
 
 SwitchStatement ::= SWITCH LPAREN Expr RPAREN LBRACE SwitchCaseStatement01 RBRACE;
 
-SwitchCaseStatement01 ::= SwitchCaseStatement01 SwitchCaseStatement | /* epsilon */ ;
+SwitchCaseStatement01 ::= (SwitchCaseStatementN) SwitchCaseStatement01 SwitchCaseStatement | (SwitchCaseStatement0)/* epsilon */ ;
 
 SwitchCaseStatement ::= CASE NumConst COLON Statement0N;
 
-DesignatorStatement01 ::= DesignatorStatement | /* epsilon */;
+DesignatorStatement01 ::= (DesignatorStatementExist) DesignatorStatement | (DesignatorStatementEmpty) /* epsilon */;
 
-Condition01 ::= Condition | /* epsilon */ ;
+Condition01 ::= (ConditionExist) Condition | (ConditionEmpty) /* epsilon */ ;
 
-DesignatorStatement ::= Designator Assignop Expr
-					|   Designator LPAREN ActPars01 RPAREN 
-					|   Designator INCREMENT
-					| 	Designator DECREMENT;
+DesignatorStatement ::= (DesignatorStatementAssign) Designator Assignop Expr
+					|   (DesignatorStatementFuncCall) Designator LPAREN ActPars01 RPAREN 
+					|   (DesignatorStatementIncrement) Designator INCREMENT
+					| 	(DesignatorStatementDecrement) Designator DECREMENT;
 
-ActPars ::= Expr | ActPars COMMA Expr;
+ActPars ::= (ActPars1) Expr 
+		  | (ActParsN)ActPars COMMA Expr;
 
-ActPars01 ::= ActPars | /* epsilon */;
+ActPars01 ::= (ActParsExist) ActPars | (ActParsEmpty) /* epsilon */;
 
-Condition ::= CondTerm | Condition OR CondTerm;
+Condition ::= (Condition1) CondTerm 
+			| (ConditionN) Condition OR CondTerm;
 
-CondTerm ::= CondFact | CondTerm AND CondFact;
+CondTerm ::= (CondTerm1) CondFact 
+		   | (CondTermN) CondTerm AND CondFact;
 
-CondFact ::= ExprNormal | CondFact Relop ExprNormal;
+CondFact ::= (CondFact1) ExprNormal 
+   		   | (CondFactN) CondFact Relop ExprNormal;
 
-Expr ::= ExprNormal | TernaryExpr;
+Expr ::= (ExprExprNormal) ExprNormal 
+	   | (ExprTernaryExpr) TernaryExpr;
 
 ExprNormal ::= Minus01 TermAddition0N;
 
-Minus01 ::= MINUS | /* epsilon */ ;
+Minus01 ::= (MinusExist) MINUS | (MinusEmpty) /* epsilon */ ;
 
-TermAddition0N ::= Term | TermAddition0N Addop Term;
+TermAddition0N ::= (TermAddition1)Term 
+				 | (TermAdditionN) TermAddition0N Addop Term;
 
 TernaryExpr ::= Condition QUEST Expr COLON Expr;
 
-Term ::= Factor | Term Mulop Factor;
+Term ::= (TermFactor) Factor 
+	   | (TermMulopFactor) Term Mulop Factor;
 
-Factor ::= Designator | Designator LPAREN ActPars01 RPAREN
-		|  NumConst | CharConst | BoolConst 
-		|  NEW Type | NEW Type LBRACK Expr RBRACK
-		|  LPAREN Expr RPAREN;
+Factor ::= (FactorDesignator) Designator 
+         | (FactorDesignatorFuncCall) Designator LPAREN ActPars01 RPAREN
+		 | (FactorNumConst) NumConst 
+		 | (FactorCharConst) CharConst 
+		 | (FactorBoolConst) BoolConst 
+		 | (FactorNewType) NEW Type 
+		 | (FactorNewTypeIndexed) NEW Type LBRACK Expr RBRACK
+		 | (FactorParen) LPAREN Expr RPAREN;
 
-Designator ::= IDENT | Designator DOT IDENT | Designator DOT LENGTH | Designator LBRACK Expr RBRACK;
+Designator ::= (DesignatorIdent) IDENT 
+			 | (DesignatorDotIdent) Designator DOT IDENT 
+			 | (DesignatorDotLenght) Designator DOT LENGTH 
+			 | (DesignatorIndexed) Designator LBRACK Expr RBRACK;
 
 Assignop ::= EQUAL;
 
 Relop ::= DEQUAL | NEQUAL | GRTHAN | GREQTHAN | LSTHAN | LSEQTHAN;
 
-Addop ::= PLUS | MINUS;
+Addop ::= (AddopPLUS) PLUS | (AddopMINUS) MINUS;
 
-Mulop ::= MUL | DIV | MOD;
+Mulop ::= (MulopMUL) MUL | (MulopDIV) DIV | (MulopMOD) MOD;
