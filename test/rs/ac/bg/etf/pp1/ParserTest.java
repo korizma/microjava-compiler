@@ -25,7 +25,13 @@ public class ParserTest {
 			Yylex lexer = new Yylex(br);
 			MJParser p = new MJParser(lexer);
 			p.parse();
-			System.out.println("Parsing completed successfully!");
+			if (p.errorDetected) 
+			{
+				System.err.println("Parsing completed with errors!");
+			} else 
+			{
+				System.out.println("Parsing completed successfully!");
+			}
 		}
 		catch (Exception e) {
 			System.err.println("Parsing failed with exception: " + e.getMessage());

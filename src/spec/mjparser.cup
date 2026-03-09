@@ -2,7 +2,39 @@ package rs.ac.bg.etf.pp1;
 
 import java_cup.runtime.*;
 
-parser code {:
+parser code 
+{:
+	boolean errorDetected = false;   
+   
+    // slede redefinisani metodi za prijavu gresaka radi izmene teksta poruke
+     
+    public void report_fatal_error(String message, Object info) throws java.lang.Exception {
+      done_parsing();
+      report_error(message, info);
+    }
+  
+    public void syntax_error(Symbol cur_token) {
+        report_error("\nSyntax error!", cur_token);
+    }
+  
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        report_fatal_error("Fatal error, parsing cannot be continued!", cur_token);
+    }
+
+    public void report_error(String message, Object info) {
+    	errorDetected = true;
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info instanceof Symbol)
+            msg.append (" on line: ").append(((Symbol)info).left);
+        System.err.println(msg.toString());
+    }
+    
+    public void report_info(String message, Object info) {
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info instanceof Symbol)
+            msg.append (" on line: ").append(((Symbol)info).left);
+        System.err.println(msg.toString());
+    }
 :}
 
 scan with {:
@@ -27,16 +59,16 @@ terminal String CHAR;
 terminal Integer NUMBER;
 terminal String IDENT;
 
-nonterminal Program, AnyDecl01, AnyDecl;
-nonterminal VarDecl, VarDeclMult0N, VarDeclSingle, VarDecl01;
-nonterminal ConstDecl, ConstDeclMult0N, ConstDeclSingle;
+nonterminal Program, AnyDecl0N, AnyDecl;
+nonterminal VarDecl, VarDeclMult1N, VarDeclSingle, VarDecl0N;
+nonterminal ConstDecl, ConstDeclMult1N, ConstDeclSingle;
 nonterminal ClassDecl, ClassDeclBody;
-nonterminal MethodDecl, MethodDeclClassBody, MethodDecl01;
-nonterminal EnumDecl, EnumDeclItem0N, EnumDeclItem;
+nonterminal MethodDecl, MethodDeclClassBody, MethodDecl0N;
+nonterminal EnumDecl, EnumDeclItem1N, EnumDeclItem;
 nonterminal AbstractClassDecl, AbstractClassDeclBody, AbstractClassDeclBodyDecl, AbstractMethodDecl;
 nonterminal Type;
 nonterminal FormPars, FormPars01;
-nonterminal Statement01, Statement;
+nonterminal Statement0N, Statement;
 nonterminal SwitchStatement, SwitchCaseStatement01, SwitchCaseStatement;
 nonterminal DesignatorStatement, DesignatorStatement01;
 nonterminal ActPars01, ActPars;
@@ -51,59 +83,57 @@ precedence left ELSE;
 
 /* ostalo mi abstract */
 
-Program ::= PROG IDENT AnyDecl01 LBRACE MethodDecl01 RBRACE;
+Program ::= (Program) PROG IDENT AnyDecl0N LBRACE MethodDecl0N RBRACE;
 
-AnyDecl01 ::= AnyDecl01 AnyDecl | /* epsilon */;
+AnyDecl0N ::= (AnyDeclList) AnyDecl0N AnyDecl | (AnyDeclEmpty) /* epsilon */;
 
-AnyDecl ::= ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
+AnyDecl ::= (AnyDecl) ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
 
-MethodDecl01 ::= MethodDecl01 MethodDecl | /* epsilon */;
+MethodDecl0N ::= (MethodDeclList) MethodDecl0N MethodDecl | (MethodDeclEmpty) /* epsilon */;
 
-ConstDecl ::= CONST Type ConstDeclMult0N SEMI
-			| CONST Type error SEMI {: System.err.println("Error while parsing ConstDecl, stopped at the semi colon"); :};
+ConstDecl ::= (ConstDecl) CONST Type ConstDeclMult1N SEMI;
 
-ConstDeclMult0N ::= ConstDeclSingle | ConstDeclMult0N COMMA ConstDeclSingle
-					| error COMMA ConstDeclSingle {: System.err.println("Error while parsing ConstDecl, stopped at the comma"); :};
+ConstDeclMult1N ::= (ConstDeclMultSingle) ConstDeclSingle | (ConstDeclMultList) ConstDeclMult1N COMMA ConstDeclSingle;
 
-ConstDeclSingle ::= IDENT EQUAL AllTypesConst;
+ConstDeclSingle ::= (ConstDeclSingle) IDENT EQUAL AllTypesConst;
 
-AllTypesConst ::= NumConst | CharConst | BoolConst;
+AllTypesConst ::= (AllTypesConst) NumConst | CharConst | BoolConst;
 
-NumConst ::= NUMBER;
-CharConst ::= CHAR;
-BoolConst ::= TRUE | FALSE;
+NumConst ::= (NumConst) NUMBER;
+CharConst ::= (CharConst) CHAR;
+BoolConst ::= (BoolConstTrue) TRUE | (BoolConstFalse) FALSE;
 
-VarDecl ::= Type VarDeclMult0N SEMI
-		| Type error SEMI {: System.err.println("Error while parsing VarDecl"); :};
+VarDecl ::= (VarDecl) Type VarDeclMult1N SEMI;
 
-VarDeclMult0N ::= VarDeclSingle | VarDeclMult0N COMMA VarDeclSingle;
+VarDeclMult1N ::= (VarDeclMultSingle) VarDeclSingle | (VarDeclMultList) VarDeclMult1N COMMA VarDeclSingle;
 
-VarDeclSingle ::= IDENT | IDENT LBRACK RBRACK;
+VarDeclSingle ::= (VarDeclSingle) IDENT | (VarDeclSingleArray) IDENT LBRACK RBRACK;
 
-EnumDecl ::= ENUM IDENT LBRACE EnumDeclItem0N RBRACE;
+EnumDecl ::= (EnumDecl) ENUM IDENT LBRACE EnumDeclItem1N RBRACE;
 
-EnumDeclItem0N ::= EnumDeclItem | EnumDeclItem0N COMMA EnumDeclItem;
+EnumDeclItem1N ::= (EnumDeclItemSingle) EnumDeclItem | (EnumDeclItemList) EnumDeclItem1N COMMA EnumDeclItem;
 
-EnumDeclItem ::= IDENT | IDENT EQUAL NumConst;
+EnumDeclItem ::= (EnumDeclItem) IDENT | (EnumDeclItemValue) IDENT EQUAL NumConst;
 
-ClassDecl ::= CLASS IDENT LBRACE ClassDeclBody RBRACE | CLASS IDENT EXTEND Type LBRACE ClassDeclBody RBRACE; 
+ClassDecl ::= (ClassDecl) CLASS IDENT LBRACE ClassDeclBody RBRACE 
+			| (ClassDeclExtend) CLASS IDENT EXTEND Type LBRACE ClassDeclBody RBRACE; 
 
-ClassDeclBody ::= VarDecl01 MethodDeclClassBody;
+ClassDeclBody ::= (ClassDeclBody) VarDecl0N MethodDeclClassBody;
 
-VarDecl01 ::= VarDecl01 VarDecl | /* epsilon */;
+VarDecl0N ::= (VarDeclList) VarDecl0N VarDecl | (VarDeclNone) /* epsilon */;
 
-MethodDeclClassBody ::= LBRACE MethodDecl01 RBRACE | /* epsilon */;
+MethodDeclClassBody ::= LBRACE MethodDecl0N RBRACE | /* epsilon */;
 
 AbstractClassDecl ::= ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE | ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
 
-AbstractClassDeclBody ::= VarDecl01 | VarDecl01 LBRACE AbstractClassDeclBodyDecl RBRACE;
+AbstractClassDeclBody ::= VarDecl0N | VarDecl0N LBRACE AbstractClassDeclBodyDecl RBRACE;
 
 AbstractClassDeclBodyDecl ::= AbstractClassDeclBodyDecl AbstractMethodDecl SEMI | AbstractClassDeclBodyDecl MethodDecl | /* epsilon */;
 
 AbstractMethodDecl ::= ABST Type IDENT LPAREN FormPars01 RPAREN | ABST VOID IDENT LPAREN FormPars01 RPAREN ;
 
-MethodDecl ::= Type IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE
-			|  VOID IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE;
+MethodDecl ::= Type IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE
+			|  VOID IDENT LPAREN FormPars01 RPAREN VarDecl0N LBRACE Statement0N RBRACE;
 
 FormPars ::= Type VarDeclSingle | FormPars COMMA Type VarDeclSingle; 
 
@@ -120,15 +150,15 @@ Statement ::= DesignatorStatement SEMI
 			| PRINT LPAREN Expr RPAREN SEMI | PRINT LPAREN Expr COMMA NumConst RPAREN SEMI 
 			| SwitchStatement
 			| FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
-			| LBRACE Statement01 RBRACE; 
+			| LBRACE Statement0N RBRACE; 
 
-Statement01 ::= Statement01 Statement | /* epsilon */ ;
+Statement0N ::= Statement0N Statement | /* epsilon */ ;
 
 SwitchStatement ::= SWITCH LPAREN Expr RPAREN LBRACE SwitchCaseStatement01 RBRACE;
 
 SwitchCaseStatement01 ::= SwitchCaseStatement01 SwitchCaseStatement | /* epsilon */ ;
 
-SwitchCaseStatement ::= CASE NumConst COLON Statement01;
+SwitchCaseStatement ::= CASE NumConst COLON Statement0N;
 
 DesignatorStatement01 ::= DesignatorStatement | /* epsilon */;
 

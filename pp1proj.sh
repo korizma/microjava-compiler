@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [ "$#" -lt 1 ]; then
     echo "Invalid arguments."
-    echo "Usage: $0 {lexer|parser|lexertest|parsertest} [source-file]"
+    echo "Usage: $0 {lexer|parser|lexertest|parsertest|semantictest} [source-file]"
     exit 1
 fi
 
@@ -15,7 +15,7 @@ fi
 target="$1"
 source_file="${2:-}"
 
-if [[ "$target" == "lexertest" || "$target" == "parsertest" ]]; then
+if [[ "$target" == "lexertest" || "$target" == "parsertest" || "$target" == "semantictest" ]]; then
     if [ "$#" -ne 2 ]; then
         echo "Target '$target' requires a source file."
         echo "Usage: $0 $target <source-file>"
@@ -92,6 +92,35 @@ run_parser_test() {
     clean
 }
 
+run_semantic_test() {
+    # Ensure generated sources exist and are up-to-date.
+    compile_parser
+    compile_lexer
+
+    local semantic_test_file="test/rs/ac/bg/etf/pp1/SemanticTest.java"
+    if [ ! -f "$semantic_test_file" ]; then
+        echo "Semantic test class not found: $semantic_test_file"
+        echo "Create it first, then rerun: $0 semantictest <source-file>"
+        clean
+        exit 1
+    fi
+
+    mkdir -p out
+    javac -cp lib/cup_v10k.jar:lib/symboltable.jar:lib/log4j-1.2.17.jar \
+        --release 8 \
+        -d out \
+        src/rs/ac/bg/etf/pp1/sym.java \
+        src/rs/ac/bg/etf/pp1/Yylex.java \
+        src/rs/ac/bg/etf/pp1/MJParser.java \
+        "$semantic_test_file"
+
+    java -cp out:lib/cup_v10k.jar:lib/symboltable.jar:lib/log4j-1.2.17.jar \
+        rs.ac.bg.etf.pp1.SemanticTest "$source_file"
+
+    rm -rf out/*
+    clean
+}
+
 case "$target" in
     lexer)
         compile_lexer
@@ -105,9 +134,12 @@ case "$target" in
     parsertest)
         run_parser_test
         ;;
+    semantictest)
+        run_semantic_test
+        ;;
     *)
         echo "Unknown target: $target"
-        echo "Usage: $0 {lexer | parser | lexertest | parsertest}"
+        echo "Usage: $0 {lexer | parser | lexertest | parsertest | semantictest}"
         exit 1
         ;;
 esac

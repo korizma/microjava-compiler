@@ -1,7 +1,6 @@
 package rs.ac.bg.etf.pp1;
 
 import java_cup.runtime.*;
-import org.apache.log4j.*;
 
 // import java.io.*;
 import rs.ac.bg.etf.pp1.ast.*;
@@ -9,10 +8,7 @@ import rs.ac.bg.etf.pp1.ast.*;
 
 parser code {:
 	
-	boolean errorDetected = false;
-	
-	Logger log = Logger.getLogger(getClass());
-   
+	boolean errorDetected = false;   
    
     // slede redefinisani metodi za prijavu gresaka radi izmene teksta poruke
      
@@ -34,14 +30,14 @@ parser code {:
     	StringBuilder msg = new StringBuilder(message); 
     	if (info instanceof Symbol)
             msg.append (" na liniji ").append(((Symbol)info).left);
-        log.error(msg.toString());
+        System.err.println(msg.toString());
     }
     
     public void report_info(String message, Object info) {
     	StringBuilder msg = new StringBuilder(message); 
     	if (info instanceof Symbol)
             msg.append (" na liniji ").append(((Symbol)info).left);
-        log.info(msg.toString());
+        System.err.println(msg.toString());
     }
     
 :}
@@ -49,7 +45,7 @@ parser code {:
 scan with {:
 	Symbol s = this.getScanner().next_token();
 	if (s != null && s.value != null) 
-		log.info(s.toString() + " " + s.value.toString());
+		System.err.println(s.toString() + " " + s.value.toString());
 	return s;
 :}
 
@@ -126,7 +122,7 @@ Unmatched ::= (UnmatchedIf) IF Expr:E1 Statement:S2 {: RESULT=new UnmatchedIf(E1
 Matched ::= (Assignment) Designator:dest EQUAL Expr:e SEMI {: RESULT=new Assignment(dest, e); RESULT.setLine(destleft); :} 
 			  |
 			  (ErrAssignment) Designator:D1 EQUAL error SEMI
-			  {: parser.log.debug("Uspesan oporavak od greske pri dodeli vrednosti."); :} {: RESULT=new ErrAssignment(D1); RESULT.setLine(D1left); :}
+			  {: System.err.println("Uspesan oporavak od greske pri dodeli vrednosti."); :} {: RESULT=new ErrAssignment(D1); RESULT.setLine(D1left); :}
 			  |
 			  (PrintStmt) PRINT LPAREN Expr:E1 RPAREN SEMI {: RESULT=new PrintStmt(E1); RESULT.setLine(E1left); :} 
 			  |
