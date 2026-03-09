@@ -45,6 +45,7 @@ nonterminal Expr, ExprAddition, Term, Factor, Designator;
 nonterminal TernaryExpr, OrExpr, AndExpr, RelExpr, AddExpr;
 nonterminal Assignop, Relop, Addop, Mulop;
 nonterminal AllTypesConst, NumConst, CharConst, BoolConst;
+nonterminal ExprNormal, Minus01, TermAddition0N;
 
 precedence left ELSE;
 
@@ -56,15 +57,28 @@ AnyDecl01 ::= AnyDecl01 AnyDecl | /* epsilon */;
 
 AnyDecl ::= ConstDecl | VarDecl | ClassDecl | EnumDecl | AbstractClassDecl;
 
-AbstractClassDecl ::= ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE | ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
-
-AbstractClassDeclBody ::= VarDecl01 | VarDecl01 LBRACE AbstractClassDeclBodyDecl RBRACE;
-
-AbstractClassDeclBodyDecl ::= AbstractClassDeclBodyDecl AbstractMethodDecl SEMI | AbstractClassDeclBodyDecl MethodDecl | /* epsilon */;
-
-AbstractMethodDecl ::= ABST Type IDENT LPAREN FormPars01 RPAREN | ABST VOID IDENT LPAREN FormPars01 RPAREN ;
-
 MethodDecl01 ::= MethodDecl01 MethodDecl | /* epsilon */;
+
+ConstDecl ::= CONST Type ConstDeclMult0N SEMI
+			| CONST Type error SEMI {: System.err.println("Error while parsing ConstDecl, stopped at the semi colon"); :};
+
+ConstDeclMult0N ::= ConstDeclSingle | ConstDeclMult0N COMMA ConstDeclSingle
+					| error COMMA ConstDeclSingle {: System.err.println("Error while parsing ConstDecl, stopped at the comma"); :};
+
+ConstDeclSingle ::= IDENT EQUAL AllTypesConst;
+
+AllTypesConst ::= NumConst | CharConst | BoolConst;
+
+NumConst ::= NUMBER;
+CharConst ::= CHAR;
+BoolConst ::= TRUE | FALSE;
+
+VarDecl ::= Type VarDeclMult0N SEMI
+		| Type error SEMI {: System.err.println("Error while parsing VarDecl"); :};
+
+VarDeclMult0N ::= VarDeclSingle | VarDeclMult0N COMMA VarDeclSingle;
+
+VarDeclSingle ::= IDENT | IDENT LBRACK RBRACK;
 
 EnumDecl ::= ENUM IDENT LBRACE EnumDeclItem0N RBRACE;
 
@@ -80,6 +94,14 @@ VarDecl01 ::= VarDecl01 VarDecl | /* epsilon */;
 
 MethodDeclClassBody ::= LBRACE MethodDecl01 RBRACE | /* epsilon */;
 
+AbstractClassDecl ::= ABST CLASS IDENT LBRACE AbstractClassDeclBody RBRACE | ABST CLASS IDENT EXTEND Type LBRACE AbstractClassDeclBody RBRACE;
+
+AbstractClassDeclBody ::= VarDecl01 | VarDecl01 LBRACE AbstractClassDeclBodyDecl RBRACE;
+
+AbstractClassDeclBodyDecl ::= AbstractClassDeclBodyDecl AbstractMethodDecl SEMI | AbstractClassDeclBodyDecl MethodDecl | /* epsilon */;
+
+AbstractMethodDecl ::= ABST Type IDENT LPAREN FormPars01 RPAREN | ABST VOID IDENT LPAREN FormPars01 RPAREN ;
+
 MethodDecl ::= Type IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE
 			|  VOID IDENT LPAREN FormPars01 RPAREN VarDecl01 LBRACE Statement01 RBRACE;
 
@@ -87,7 +109,7 @@ FormPars ::= Type VarDeclSingle | FormPars COMMA Type VarDeclSingle;
 
 FormPars01 ::= FormPars | /* epsilon */ ;
 
-Statement01 ::= Statement01 Statement | /* epsilon */ ;
+Type ::= IDENT;
 
 Statement ::= DesignatorStatement SEMI
 			| IF LPAREN Condition RPAREN Statement | IF LPAREN Condition RPAREN Statement ELSE Statement
@@ -100,38 +122,44 @@ Statement ::= DesignatorStatement SEMI
 			| FOR LPAREN DesignatorStatement01 SEMI Condition01 SEMI DesignatorStatement01 RPAREN Statement
 			| LBRACE Statement01 RBRACE; 
 
+Statement01 ::= Statement01 Statement | /* epsilon */ ;
+
 SwitchStatement ::= SWITCH LPAREN Expr RPAREN LBRACE SwitchCaseStatement01 RBRACE;
 
 SwitchCaseStatement01 ::= SwitchCaseStatement01 SwitchCaseStatement | /* epsilon */ ;
 
 SwitchCaseStatement ::= CASE NumConst COLON Statement01;
 
+DesignatorStatement01 ::= DesignatorStatement | /* epsilon */;
+
+Condition01 ::= Condition | /* epsilon */ ;
+
 DesignatorStatement ::= Designator Assignop Expr
 					|   Designator LPAREN ActPars01 RPAREN 
 					|   Designator INCREMENT
 					| 	Designator DECREMENT;
 
-DesignatorStatement01 ::= DesignatorStatement | /* epsilon */;
-
-ActPars01 ::= ActPars | /* epsilon */;
-
 ActPars ::= Expr | ActPars COMMA Expr;
 
-Condition01 ::= Condition | /* epsilon */ ;
-
-Expr ::= TernaryExpr;
-
-TernaryExpr ::= Condition | Condition QUEST Expr COLON TernaryExpr;
+ActPars01 ::= ActPars | /* epsilon */;
 
 Condition ::= CondTerm | Condition OR CondTerm;
 
 CondTerm ::= CondFact | CondTerm AND CondFact;
 
-CondFact ::= AddExpr | AddExpr Relop AddExpr;
+CondFact ::= ExprNormal | CondFact Relop ExprNormal;
 
-AddExpr ::= Term | AddExpr Addop Term;
+Expr ::= ExprNormal | TernaryExpr;
 
-Term ::= Term Mulop Factor | Factor;
+ExprNormal ::= Minus01 TermAddition0N;
+
+Minus01 ::= MINUS | /* epsilon */ ;
+
+TermAddition0N ::= Term | TermAddition0N Addop Term;
+
+TernaryExpr ::= Condition QUEST Expr COLON Expr;
+
+Term ::= Factor | Term Mulop Factor;
 
 Factor ::= Designator | Designator LPAREN ActPars01 RPAREN
 		|  NumConst | CharConst | BoolConst 
@@ -147,26 +175,3 @@ Relop ::= DEQUAL | NEQUAL | GRTHAN | GREQTHAN | LSTHAN | LSEQTHAN;
 Addop ::= PLUS | MINUS;
 
 Mulop ::= MUL | DIV | MOD;
-
-ConstDecl ::= CONST Type ConstDeclMult0N SEMI
-			| CONST Type error SEMI {: System.err.println("Error while parsing ConstDecl, stopped at the semi colon"); :};
-
-ConstDeclMult0N ::= ConstDeclSingle | ConstDeclMult0N COMMA ConstDeclSingle
-					| error COMMA ConstDeclSingle {: System.err.println("Error while parsing ConstDecl, stopped at the comma"); :};
-
-ConstDeclSingle ::= IDENT EQUAL AllTypesConst;
-
-VarDecl ::= Type VarDeclMult0N SEMI
-		| Type error SEMI {: System.err.println("Error while parsing VarDecl"); :};
-
-VarDeclMult0N ::= VarDeclSingle | VarDeclMult0N COMMA VarDeclSingle;
-
-VarDeclSingle ::= IDENT | IDENT LBRACK RBRACK;
-
-Type ::= IDENT;
-
-AllTypesConst ::= NumConst | CharConst | BoolConst;
-
-NumConst ::= NUMBER;
-CharConst ::= CHAR;
-BoolConst ::= TRUE | FALSE;

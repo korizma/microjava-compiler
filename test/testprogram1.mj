@@ -1,0 +1,131 @@
+// Grammar coverage test for MikroJava parser (PDF spec)
+
+program testprogram1
+
+const int CI = 1, CJ = 2;
+const char CC = 'x';
+const bool CB = true;
+
+int g, h[], idx;
+char c;
+bool b;
+
+enum Mode { OFF, ON = 1, AUTO = 2 }
+
+class Base {
+    int field;
+    bool flag;
+    {
+        void setField(int v)
+        {
+            field = v;
+            return;
+        }
+
+        int getField()
+        {
+            return field;
+        }
+    }
+}
+
+class Derived extends Base {
+    int extra;
+}
+
+abstract class Worker extends Base {
+    int state;
+    {
+        abstract void step(int p);
+        abstract int value();
+
+        void reset()
+        {
+            state = 0;
+            return;
+        }
+    }
+}
+
+{
+    int add(int a, int b)
+        int r;
+    {
+        r = a + b;
+        return r;
+    }
+
+    void useArray(int arr[], int n)
+        int i;
+    {
+        for (i = 0; i < n; i++)
+        {
+            arr[i] = i * 2;
+        }
+        print(arr.length);
+        return;
+    }
+
+    void main()
+        int i, j, localArr[];
+        Base baseObj;
+        Derived derObj;
+    {
+        i = 0;
+        j = add(3, 4);
+
+        g = j;
+        h = new int[5];
+        h[0] = g;
+        h[1] = h[0] + 1;
+        print(h.length);
+
+        c = 'a';
+        b = true;
+
+        baseObj = new Base;
+        derObj = new Derived;
+        baseObj.setField(10);
+        baseObj.getField();
+        print(baseObj.getField());
+
+        if (i < j && b || g == 7)
+            print(j);
+        else
+            print(i, 5);
+
+        if (b)
+            if (i < j)
+                i = i + 1;
+            else
+                i = i - 1;
+
+        i++;
+        i--;
+
+        j = i < 2 ? 100 : 200;
+        print(j);
+
+        switch (i)
+        {
+            case 0:
+                print(0);
+                break;
+            case 1:
+                i = i + 10;
+                break;
+            case 2:
+                print(i);
+        }
+
+        for (i = 0; i < 5; i++)
+        {
+            if (i == 3) continue;
+            h[i] = i;
+        }
+
+        read(h[0]);
+        useArray(h, 5);
+        return;
+    }
+}
